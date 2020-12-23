@@ -17,16 +17,10 @@
 #include <iostream>
 
 unsigned int loadTexture(char const * path);
-
-
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
-
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
-
 void processInput(GLFWwindow *window);
-
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 // settings
@@ -152,7 +146,7 @@ int main() {
     stbi_set_flip_vertically_on_load(true);
 
     programState = new ProgramState;
-    programState->LoadFromFile("resources/program_state.txt");
+    //programState->LoadFromFile("resources/program_state.txt");
     if (programState->ImGuiEnabled) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
@@ -173,7 +167,7 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    Shader roomShader("resources/shaders/roomShader.vs", "resources/shaders/roomShader.fs");
     Shader modelsShader("resources/shaders/modelsShader.vs", "resources/shaders/modelsShader.fs");
 
 
@@ -199,18 +193,17 @@ int main() {
 
 
     PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(1.0, 1.0, 1.0);
-    pointLight.diffuse = glm::vec3(1.0, 1.0, 1.0);
-    pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
-
+    pointLight.position = glm::vec3(0.5f, 2.0f, 0.0f);
+    pointLight.ambient = glm::vec3(0.4, 0.4, 0.4);
+    pointLight.diffuse = glm::vec3(0.4, 0.4, 0.4);
+    pointLight.specular = glm::vec3(0.45, 0.45, 0.45);
     pointLight.constant = 1.0f;
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
 
     DirLight& dirLight = programState->dirLight;
     dirLight.ambient = glm::vec3(0.3 ,0.3 ,0.3);
-    dirLight.diffuse = glm::vec3(0.1, 0.1, 0.1);
+    dirLight.diffuse = glm::vec3(0.01, 0.01, 0.01);
     dirLight.specular = glm::vec3(0.05, 0.05, 0.05);
     dirLight.direction = glm::vec3(-5.0, 1.0, -1.5);
 
@@ -246,44 +239,48 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-        ourShader.use();
+        roomShader.use();
 
+        roomShader.setVec3("pointLight.position", pointLight.position);
+        roomShader.setVec3("pointLight.ambient", pointLight.ambient);
+        roomShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+        roomShader.setVec3("pointLight.specular", pointLight.specular);
+        roomShader.setFloat("pointLight.constant", pointLight.constant);
+        roomShader.setFloat("pointLight.linear", pointLight.linear);
+        roomShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+        roomShader.setVec3("viewPosition", programState->camera.Position);
+        roomShader.setFloat("material.shininess", 2.0f);
 
-        //TODO za sada nemamo pointLight, vec je samo napolju direkciono svetlo, a unutra je point da bi se objekat video spolja
-
-//        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
-//        ourShader.setVec3("pointLight.position", pointLight.position);
-//        ourShader.setVec3("pointLight.ambient", pointLight.ambient);
-//        ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-//        ourShader.setVec3("pointLight.specular", pointLight.specular);
-//        ourShader.setFloat("pointLight.constant", pointLight.constant);
-//        ourShader.setFloat("pointLight.linear", pointLight.linear);
-//        ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-        ourShader.setVec3("viewPosition", programState->camera.Position);
-        ourShader.setFloat("material.shininess", 2.0f);
-
-        ourShader.setVec3("dirLight.ambient", dirLight.ambient);
-        ourShader.setVec3("dirLight.diffuse", dirLight.diffuse);
-        ourShader.setVec3("dirLight.specular", dirLight.specular);
-        ourShader.setVec3("dirLight.direction", dirLight.direction);
+        roomShader.setVec3("dirLight.ambient", dirLight.ambient);
+        roomShader.setVec3("dirLight.diffuse", dirLight.diffuse);
+        roomShader.setVec3("dirLight.specular", dirLight.specular);
+        roomShader.setVec3("dirLight.direction", dirLight.direction);
 
         modelsShader.use();
         modelsShader.setVec3("viewPosition", programState->camera.Position);
-        modelsShader.setFloat("material.shininess", 2.0f);
+        modelsShader.setFloat("material.shininess", 16.0f);
 
         modelsShader.setVec3("dirLight.ambient", dirLight.ambient);
         modelsShader.setVec3("dirLight.diffuse", dirLight.diffuse);
         modelsShader.setVec3("dirLight.specular", dirLight.specular);
         modelsShader.setVec3("dirLight.direction", dirLight.direction);
 
+        modelsShader.setVec3("pointLight.position", pointLight.position);
+        modelsShader.setVec3("pointLight.ambient", pointLight.ambient);
+        modelsShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+        modelsShader.setVec3("pointLight.specular", pointLight.specular);
+        modelsShader.setFloat("pointLight.constant", pointLight.constant);
+        modelsShader.setFloat("pointLight.linear", pointLight.linear);
+        modelsShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+
         
         // view/projection transformations
-        ourShader.use();
+        roomShader.use();
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
                                                 (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = programState->camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
+        roomShader.setMat4("projection", projection);
+        roomShader.setMat4("view", view);
 
 
         glm::mat4 model = glm::mat4(1.0f);
@@ -291,8 +288,8 @@ int main() {
                                programState->roomPosition); // translate it down so it's at the center of the scene
         //model = glm::rotate(model, glm::radians(40.0f), glm::vec3(1.0,1.0 ,0.0));
         model = glm::scale(model, glm::vec3(programState->roomScale));    // it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
-        room.Draw(ourShader);
+        roomShader.setMat4("model", model);
+        room.Draw(roomShader);
 
         modelsShader.use();
         modelsShader.setMat4("projection", projection);  
@@ -368,7 +365,7 @@ int main() {
         glfwPollEvents();
     }
 
-    programState->SaveToFile("resources/program_state.txt");
+    //programState->SaveToFile("resources/program_state.txt");
     delete programState;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
