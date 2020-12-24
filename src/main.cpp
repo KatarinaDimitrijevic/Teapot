@@ -56,6 +56,21 @@ struct DirLight {
     glm::vec3 specular;
 };
 
+struct SpotLight {
+    glm::vec3 position;
+    glm::vec3 direction;
+    float cutOff;
+    float outerCutOff;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+};
+
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
@@ -65,6 +80,8 @@ struct ProgramState {
     float roomScale = 1.0f;
     PointLight pointLight;
     DirLight dirLight;
+    SpotLight spotLight;
+    bool spotLightEnabled = false;
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 0)) {}
 
@@ -169,7 +186,66 @@ int main() {
     // -------------------------
     Shader roomShader("resources/shaders/roomShader.vs", "resources/shaders/roomShader.fs");
     Shader modelsShader("resources/shaders/modelsShader.vs", "resources/shaders/modelsShader.fs");
+    Shader lightShader("resources/shaders/lightShader.vs", "resources/shaders/lightShader.fs");
 
+    float t = (1 + sqrt(5))/2;
+    float u = (5 - sqrt(5))/10;
+    float vertices[] = {
+            u*t, u, 0,
+            -u*t, u, 0,
+            u*t, -u, 0,
+            -u*t, -u, 0,
+            u, 0, u*t,
+            u, 0, -u*t,
+            -u, 0, u*t,
+            -u, 0, -u*t,
+            0, u*t, u,
+            0, -u*t, u,
+            0, u*t, -u,
+            0, -u*t, -u,
+    };
+
+    unsigned int indices[] = {
+            0, 8, 4, //first triangle
+            0, 5, 10, //second triangle
+            2, 4, 9, //third triangle
+            2, 11, 5, //fourth triangle
+            1, 6, 8, //fifth triangle
+            1, 10, 7, //sixth triangle,
+            3, 9, 6, //seventh triangle
+            3, 7, 11, //eighth triangle
+            0, 10, 8, //...
+            1, 8, 10,
+            2, 9, 11,
+            3, 11, 9,
+            4, 2, 0,
+            5, 0, 2,
+            6, 1, 3,
+            7, 3, 1,
+            8, 6, 4,
+            9, 4, 6,
+            10, 5, 7,
+            11, 7, 5
+    };
+
+    unsigned int VBO, VAO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     // load models
     // -----------
@@ -191,12 +267,11 @@ int main() {
 //    Model plant("resources/objects/POKUSAJ_BILJKE/eb_house_plant_02/eb_house_plant_02.obj");
 //    plant.SetShaderTextureNamePrefix("material.");
 
-
     PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(0.5f, 2.0f, 0.0f);
+    pointLight.position = glm::vec3(0.0f, 3.0f, 0.0f);
     pointLight.ambient = glm::vec3(0.4, 0.4, 0.4);
-    pointLight.diffuse = glm::vec3(0.4, 0.4, 0.4);
-    pointLight.specular = glm::vec3(0.45, 0.45, 0.45);
+    pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
+    pointLight.specular = glm::vec3(0.55, 0.55, 0.55);
     pointLight.constant = 1.0f;
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
@@ -207,6 +282,15 @@ int main() {
     dirLight.specular = glm::vec3(0.05, 0.05, 0.05);
     dirLight.direction = glm::vec3(-5.0, 1.0, -1.5);
 
+    SpotLight& spotLight = programState->spotLight;
+    spotLight.ambient = glm::vec3(0.0f, 0.0f, 0.0f);
+    spotLight.diffuse = glm::vec3 (1.0f, 1.0f, 1.0f);
+    spotLight.specular = glm::vec3(0.55f, 0.55f, 0.55f);
+    spotLight.constant = 1.0f;
+    spotLight.linear = 0.09f;
+    spotLight.quadratic = 0.032f;
+    spotLight.cutOff = glm::cos(glm::radians(12.5f));
+    spotLight.outerCutOff = glm::cos(glm::radians(20.0f));
 
 //    unsigned int map = loadTexture("resources/textures/awesomeface.png");
 //    tableShader.use();
@@ -221,6 +305,7 @@ int main() {
 
     // render loop
     // -----------
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE|GL_FILL);
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
         // --------------------
@@ -238,8 +323,12 @@ int main() {
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
+        //room lights
         roomShader.use();
+        roomShader.setVec3("dirLight.ambient", dirLight.ambient);
+        roomShader.setVec3("dirLight.diffuse", dirLight.diffuse);
+        roomShader.setVec3("dirLight.specular", dirLight.specular);
+        roomShader.setVec3("dirLight.direction", dirLight.direction);
 
         roomShader.setVec3("pointLight.position", pointLight.position);
         roomShader.setVec3("pointLight.ambient", pointLight.ambient);
@@ -251,11 +340,19 @@ int main() {
         roomShader.setVec3("viewPosition", programState->camera.Position);
         roomShader.setFloat("material.shininess", 2.0f);
 
-        roomShader.setVec3("dirLight.ambient", dirLight.ambient);
-        roomShader.setVec3("dirLight.diffuse", dirLight.diffuse);
-        roomShader.setVec3("dirLight.specular", dirLight.specular);
-        roomShader.setVec3("dirLight.direction", dirLight.direction);
+        roomShader.setVec3("spotLight.position", programState->camera.Position);
+        roomShader.setVec3("spotLight.direction", programState->camera.Front);
+        roomShader.setVec3("spotLight.ambient", spotLight.ambient);
+        roomShader.setVec3("spotLight.diffuse", spotLight.diffuse);
+        roomShader.setVec3("spotLight.specular", spotLight.specular);
+        roomShader.setFloat("spotLight.constant", spotLight.constant);
+        roomShader.setFloat("spotLight.linear", spotLight.linear);
+        roomShader.setFloat("spotLight.quadratic", spotLight.quadratic);
+        roomShader.setFloat("spotLight.cutOff", spotLight.cutOff);
+        roomShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
+        roomShader.setBool("spotLightEnabled", programState->spotLightEnabled);
 
+        //models lights
         modelsShader.use();
         modelsShader.setVec3("viewPosition", programState->camera.Position);
         modelsShader.setFloat("material.shininess", 16.0f);
@@ -272,6 +369,18 @@ int main() {
         modelsShader.setFloat("pointLight.constant", pointLight.constant);
         modelsShader.setFloat("pointLight.linear", pointLight.linear);
         modelsShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+
+        modelsShader.setVec3("spotLight.position", programState->camera.Position);
+        modelsShader.setVec3("spotLight.direction", programState->camera.Front);
+        modelsShader.setVec3("spotLight.ambient", spotLight.ambient);
+        modelsShader.setVec3("spotLight.diffuse", spotLight.diffuse);
+        modelsShader.setVec3("spotLight.specular", spotLight.specular);
+        modelsShader.setFloat("spotLight.constant", spotLight.constant);
+        modelsShader.setFloat("spotLight.linear", spotLight.linear);
+        modelsShader.setFloat("spotLight.quadratic", spotLight.quadratic);
+        modelsShader.setFloat("spotLight.cutOff", spotLight.cutOff);
+        modelsShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
+        modelsShader.setBool("spotLightEnabled", programState->spotLightEnabled);
 
         
         // view/projection transformations
@@ -332,7 +441,6 @@ int main() {
         modelsShader.setMat4("model", model);
         chair.Draw(modelsShader);
 
-
         model = glm::mat4(1.0);
         model = glm::translate(model,
                                programState->roomPosition + glm::vec3(-0.65, 0.415, 0.45));
@@ -354,7 +462,17 @@ int main() {
         modelsShader.setMat4("model", model);
         cup.Draw(modelsShader);
 
+        //draw the lamp object
+        lightShader.use();
+        lightShader.setMat4("projection", projection);
+        lightShader.setMat4("view", view);
 
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, pointLight.position);
+        model = glm::scale(model, glm::vec3(0.3f));
+        lightShader.setMat4("model", model);
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 60, GL_UNSIGNED_INT, 0);
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -364,6 +482,10 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    //glDeleteBuffers(1, &EBO);
 
     //programState->SaveToFile("resources/program_state.txt");
     delete programState;
@@ -381,6 +503,12 @@ int main() {
 void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+        programState->spotLightEnabled = true;
+
+    if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
+        programState->spotLightEnabled = false;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         programState->camera.ProcessKeyboard(FORWARD, deltaTime);
@@ -471,8 +599,6 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         }
     }
 }
-
-
 
 
 unsigned int loadTexture(char const * path)
