@@ -269,8 +269,8 @@ int main() {
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(0.0f, 3.0f, 0.0f);
-    pointLight.ambient = glm::vec3(0.4, 0.4, 0.4);
-    pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
+    pointLight.ambient = glm::vec3(0.7, 0.7, 0.7);
+    pointLight.diffuse = glm::vec3(0.4, 0.4, 0.4);
     pointLight.specular = glm::vec3(0.55, 0.55, 0.55);
     pointLight.constant = 1.0f;
     pointLight.linear = 0.09f;
