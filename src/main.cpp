@@ -461,25 +461,25 @@ int main() {
 
         // material properties
         paintingShader.setFloat("material.shininess", 64.0f);
-//        paintingShader.setVec3("pointLight.position", pointLight.position);
-//        paintingShader.setVec3("pointLight.ambient", pointLight.ambient);
-//        paintingShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-//        paintingShader.setVec3("pointLight.specular", pointLight.specular);
-//        paintingShader.setFloat("pointLight.constant", pointLight.constant);
-//        paintingShader.setFloat("pointLight.linear", pointLight.linear);
-//        paintingShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+        paintingShader.setVec3("pointLight.position", pointLight.position);
+        paintingShader.setVec3("pointLight.ambient", pointLight.ambient);
+        paintingShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+        paintingShader.setVec3("pointLight.specular", pointLight.specular);
+        paintingShader.setFloat("pointLight.constant", pointLight.constant);
+        paintingShader.setFloat("pointLight.linear", pointLight.linear);
+        paintingShader.setFloat("pointLight.quadratic", pointLight.quadratic);
 //
-//        paintingShader.setVec3("spotLight.position", programState->camera.Position);
-//        paintingShader.setVec3("spotLight.direction", programState->camera.Front);
-//        paintingShader.setVec3("spotLight.ambient", spotLight.ambient);
-//        paintingShader.setVec3("spotLight.diffuse", spotLight.diffuse);
-//        paintingShader.setVec3("spotLight.specular", spotLight.specular);
-//        paintingShader.setFloat("spotLight.constant", spotLight.constant);
-//        paintingShader.setFloat("spotLight.linear", spotLight.linear);
-//        paintingShader.setFloat("spotLight.quadratic", spotLight.quadratic);
-//        paintingShader.setFloat("spotLight.cutOff", spotLight.cutOff);
-//        paintingShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
-//        paintingShader.setBool("spotLightEnabled", programState->spotLightEnabled);
+        paintingShader.setVec3("spotLight.position", programState->camera.Position);
+        paintingShader.setVec3("spotLight.direction", programState->camera.Front);
+        paintingShader.setVec3("spotLight.ambient", spotLight.ambient);
+        paintingShader.setVec3("spotLight.diffuse", spotLight.diffuse);
+        paintingShader.setVec3("spotLight.specular", spotLight.specular);
+        paintingShader.setFloat("spotLight.constant", spotLight.constant);
+        paintingShader.setFloat("spotLight.linear", spotLight.linear);
+        paintingShader.setFloat("spotLight.quadratic", spotLight.quadratic);
+        paintingShader.setFloat("spotLight.cutOff", spotLight.cutOff);
+        paintingShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
+        paintingShader.setBool("spotLightEnabled", programState->spotLightEnabled);
 
         
         // view/projection transformations
