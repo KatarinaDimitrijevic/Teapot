@@ -37,6 +37,7 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+
 struct PointLight {
     glm::vec3 position;
     glm::vec3 ambient;
@@ -187,10 +188,11 @@ int main() {
     Shader roomShader("resources/shaders/roomShader.vs", "resources/shaders/roomShader.fs");
     Shader modelsShader("resources/shaders/modelsShader.vs", "resources/shaders/modelsShader.fs");
     Shader lightShader("resources/shaders/lightShader.vs", "resources/shaders/lightShader.fs");
+    Shader paintingShader("resources/shaders/paintingShader.vs", "resources/shaders/paintingShader.fs");
 
     float t = (1 + sqrt(5))/2;
     float u = (5 - sqrt(5))/10;
-    float vertices[] = {
+    float verticesLamp[] = {
             u*t, u, 0,
             -u*t, u, 0,
             u*t, -u, 0,
@@ -205,7 +207,7 @@ int main() {
             0, -u*t, -u,
     };
 
-    unsigned int indices[] = {
+    unsigned int indicesLamp[] = {
             0, 8, 4, //first triangle
             0, 5, 10, //second triangle
             2, 4, 9, //third triangle
@@ -228,24 +230,98 @@ int main() {
             11, 7, 5
     };
 
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    float verticesPainting[] = {
+            //coords              normals              TexCoords
+
+            -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+            0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+
+            -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+            0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+
+            -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+            -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+
+            -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+
+            -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
+    };
+
+    unsigned int VBO1, VAO1, EBO;
+    glGenVertexArrays(1, &VAO1);
+    glGenBuffers(1, &VBO1);
     glGenBuffers(1, &EBO);
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(VAO1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO1);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verticesLamp), verticesLamp, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesLamp), indicesLamp, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+    // ovde pravimo sliku
+    unsigned int VBO2, VAO2;
+    glGenVertexArrays(1, &VAO2);
+    glGenBuffers(1, &VBO2);
+
+    glBindVertexArray(VAO2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verticesPainting), verticesPainting, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3*sizeof (float)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6*sizeof (float)));
+    glEnableVertexAttribArray(2);
+
+
+    unsigned int diffuseMap = loadTexture("resources/textures/difuzna.jpg");
+    unsigned int specularMap = loadTexture("resources/textures/spekularna1.jpg");
+
+    paintingShader.use();
+    paintingShader.setInt("material.diffuse", 0);
+    paintingShader.setInt("material.specular", 1);
+
 
     // load models
     // -----------
@@ -264,8 +340,6 @@ int main() {
     Model cup("resources/objects/soljica/cup.obj");
     cup.SetShaderTextureNamePrefix("material.");
 
-//    Model plant("resources/objects/POKUSAJ_BILJKE/eb_house_plant_02/eb_house_plant_02.obj");
-//    plant.SetShaderTextureNamePrefix("material.");
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(0.0f, 3.0f, 0.0f);
@@ -291,13 +365,6 @@ int main() {
     spotLight.quadratic = 0.032f;
     spotLight.cutOff = glm::cos(glm::radians(12.5f));
     spotLight.outerCutOff = glm::cos(glm::radians(20.0f));
-
-//    unsigned int map = loadTexture("resources/textures/awesomeface.png");
-//    tableShader.use();
-//    tableShader.setInt("texture1", 0);
-
-    // shader configuration
-    // --------------------
 
 
     // draw in wireframe
@@ -382,6 +449,38 @@ int main() {
         modelsShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
         modelsShader.setBool("spotLightEnabled", programState->spotLightEnabled);
 
+        paintingShader.use();
+        paintingShader.use();
+        paintingShader.setVec3("light.position", pointLight.position);
+        paintingShader.setVec3("viewPos", programState->camera.Position);
+
+        // light properties
+        paintingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+        paintingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+        paintingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+        // material properties
+        paintingShader.setFloat("material.shininess", 64.0f);
+//        paintingShader.setVec3("pointLight.position", pointLight.position);
+//        paintingShader.setVec3("pointLight.ambient", pointLight.ambient);
+//        paintingShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+//        paintingShader.setVec3("pointLight.specular", pointLight.specular);
+//        paintingShader.setFloat("pointLight.constant", pointLight.constant);
+//        paintingShader.setFloat("pointLight.linear", pointLight.linear);
+//        paintingShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+//
+//        paintingShader.setVec3("spotLight.position", programState->camera.Position);
+//        paintingShader.setVec3("spotLight.direction", programState->camera.Front);
+//        paintingShader.setVec3("spotLight.ambient", spotLight.ambient);
+//        paintingShader.setVec3("spotLight.diffuse", spotLight.diffuse);
+//        paintingShader.setVec3("spotLight.specular", spotLight.specular);
+//        paintingShader.setFloat("spotLight.constant", spotLight.constant);
+//        paintingShader.setFloat("spotLight.linear", spotLight.linear);
+//        paintingShader.setFloat("spotLight.quadratic", spotLight.quadratic);
+//        paintingShader.setFloat("spotLight.cutOff", spotLight.cutOff);
+//        paintingShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
+//        paintingShader.setBool("spotLightEnabled", programState->spotLightEnabled);
+
         
         // view/projection transformations
         roomShader.use();
@@ -410,18 +509,6 @@ int main() {
         modelsShader.setMat4("model", model);
         table.Draw(modelsShader);
 
-        // TODO ovde fali neka biljka koju crta isto modelsShader
-
-//        model = glm::mat4(1.0);
-//        model = glm::translate(model,
-//                               programState->roomPosition + glm::vec3(3.0, 0.01, 0.0));
-//        model = glm::scale(model, glm::vec3(0.025));
-//        modelsShader.setMat4("model", model);
-//        plant.Draw(modelsShader);
-
-
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_2D, map);
 
         modelsShader.use();
 
@@ -440,7 +527,6 @@ int main() {
         model = glm::scale(model, glm::vec3(1.5));
         modelsShader.setMat4("model", model);
         chair.Draw(modelsShader);
-
         model = glm::mat4(1.0);
         model = glm::translate(model,
                                programState->roomPosition + glm::vec3(-0.65, 0.415, 0.45));
@@ -471,8 +557,29 @@ int main() {
         model = glm::translate(model, pointLight.position);
         model = glm::scale(model, glm::vec3(0.3f));
         lightShader.setMat4("model", model);
-        glBindVertexArray(VAO);
+        glBindVertexArray(VAO1);
         glDrawElements(GL_TRIANGLES, 60, GL_UNSIGNED_INT, 0);
+
+
+        //painting
+
+        paintingShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        // bind specular map
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, specularMap);
+        //draw the painting object
+
+        paintingShader.setMat4("projection", projection);
+        paintingShader.setMat4("view", view);
+        model = glm::mat4(1.0);
+        model = glm::translate(model, programState->roomPosition + glm::vec3(3.3, 1.8, 0.0));
+        model = glm::scale(model, glm::vec3(0.02,1.1, 1.0));
+        paintingShader.setMat4("model", model);
+        glBindVertexArray(VAO2);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -483,8 +590,11 @@ int main() {
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO1);
+    glDeleteBuffers(1, &VBO1);
+
+    glDeleteVertexArrays(1, &VAO2);
+    glDeleteBuffers(1, &VBO2);
     //glDeleteBuffers(1, &EBO);
 
     //programState->SaveToFile("resources/program_state.txt");
