@@ -42,7 +42,7 @@ uniform vec3 viewPos;
 uniform Material material;
 uniform PointLight pointLight;
 uniform SpotLight spotLight;
-uniform bool  spotLightEnabled;
+uniform bool spotLightEnabled;
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 {

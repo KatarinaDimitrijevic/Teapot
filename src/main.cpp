@@ -82,6 +82,10 @@ struct ProgramState {
     PointLight pointLight;
     DirLight dirLight;
     SpotLight spotLight;
+
+    float deltaY = 0;
+    float deltaZ = 0;
+
     bool spotLightEnabled = false;
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 0)) {}
@@ -164,7 +168,7 @@ int main() {
     stbi_set_flip_vertically_on_load(true);
 
     programState = new ProgramState;
-    //programState->LoadFromFile("resources/program_state.txt");
+    programState->LoadFromFile("resources/program_state.txt");
     if (programState->ImGuiEnabled) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
@@ -384,6 +388,25 @@ int main() {
         // -----
         processInput(window);
 
+//        std::cout << programState->camera.Position.x;
+//        std::cout << programState->camera.Position.y;
+//        std::cout << programState->camera.Position.z;
+
+        //camera inside
+
+        if (programState->camera.Position.x < -2.9)
+            programState->camera.Position.x = -2.9;
+        if (programState->camera.Position.x > 3.1)
+            programState->camera.Position.x = 3.1;
+        if (programState->camera.Position.y > 2.91)
+            programState->camera.Position.y = 2.91;
+        if (programState->camera.Position.y < 0.25)
+            programState->camera.Position.y = 0.25;
+        if (programState->camera.Position.z < -2.8)
+            programState->camera.Position.z = -2.8;
+        if (programState->camera.Position.z > 2.3)
+            programState->camera.Position.z = 2.3;
+
 
         // render
         // ------
@@ -449,6 +472,9 @@ int main() {
         modelsShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
         modelsShader.setBool("spotLightEnabled", programState->spotLightEnabled);
 
+        lightShader.use();
+        lightShader.setBool("spotLightEnabled", programState->spotLightEnabled);
+
         paintingShader.use();
         paintingShader.use();
         paintingShader.setVec3("light.position", pointLight.position);
@@ -469,6 +495,7 @@ int main() {
         paintingShader.setFloat("pointLight.linear", pointLight.linear);
         paintingShader.setFloat("pointLight.quadratic", pointLight.quadratic);
 //
+
         paintingShader.setVec3("spotLight.position", programState->camera.Position);
         paintingShader.setVec3("spotLight.direction", programState->camera.Front);
         paintingShader.setVec3("spotLight.ambient", spotLight.ambient);
@@ -574,7 +601,7 @@ int main() {
         paintingShader.setMat4("projection", projection);
         paintingShader.setMat4("view", view);
         model = glm::mat4(1.0);
-        model = glm::translate(model, programState->roomPosition + glm::vec3(3.3, 1.8, 0.0));
+        model = glm::translate(model, programState->roomPosition + glm::vec3(3.3 , 1.8 + programState->deltaY, 0.0 + programState->deltaZ));
         model = glm::scale(model, glm::vec3(0.02,1.1, 1.0));
         paintingShader.setMat4("model", model);
         glBindVertexArray(VAO2);
@@ -597,7 +624,7 @@ int main() {
     glDeleteBuffers(1, &VBO2);
     //glDeleteBuffers(1, &EBO);
 
-    //programState->SaveToFile("resources/program_state.txt");
+    programState->SaveToFile("resources/program_state.txt");
     delete programState;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -616,9 +643,18 @@ void processInput(GLFWwindow *window) {
 
     if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
         programState->spotLightEnabled = true;
-
     if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
         programState->spotLightEnabled = false;
+
+    if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        programState->deltaY += 0.01;
+    if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        programState->deltaY -= 0.01;
+    if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        programState->deltaZ -= 0.01;
+    if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        programState->deltaZ += 0.01;
+
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         programState->camera.ProcessKeyboard(FORWARD, deltaTime);
