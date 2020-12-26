@@ -194,6 +194,8 @@ int main() {
     Shader lightShader("resources/shaders/lightShader.vs", "resources/shaders/lightShader.fs");
     Shader paintingShader("resources/shaders/paintingShader.vs", "resources/shaders/paintingShader.fs");
 
+    Shader screenShader("resources/shaders/screenShader.vs", "resources/shaders/screenShader.fs");
+
     float t = (1 + sqrt(5))/2;
     float u = (5 - sqrt(5))/10;
     float verticesLamp[] = {
@@ -280,6 +282,17 @@ int main() {
             -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
     };
 
+    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+            // positions   // texCoords
+            -1.0f,  1.0f,  0.0f, 1.0f,
+            -1.0f, -1.0f,  0.0f, 0.0f,
+            1.0f, -1.0f,  1.0f, 0.0f,
+
+            -1.0f,  1.0f,  0.0f, 1.0f,
+            1.0f, -1.0f,  1.0f, 0.0f,
+            1.0f,  1.0f,  1.0f, 1.0f
+    };
+
     unsigned int VBO1, VAO1, EBO;
     glGenVertexArrays(1, &VAO1);
     glGenBuffers(1, &VBO1);
@@ -318,6 +331,8 @@ int main() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6*sizeof (float)));
     glEnableVertexAttribArray(2);
 
+
+    //diffuse and specular textures
 
     unsigned int diffuseMap = loadTexture("resources/textures/difuzna.jpg");
     unsigned int specularMap = loadTexture("resources/textures/spekularna1.jpg");
@@ -370,13 +385,53 @@ int main() {
     spotLight.cutOff = glm::cos(glm::radians(12.5f));
     spotLight.outerCutOff = glm::cos(glm::radians(20.0f));
 
+//    screenShader.use();
+//    screenShader.setInt("screenTexture", 0);
+
+
+    unsigned int quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    screenShader.use();
+    screenShader.setInt("screenTexture", 0);
+
+
+    unsigned int framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    // create a color attachment texture
+    unsigned int textureColorbuffer;
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // render loop
     // -----------
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE|GL_FILL);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE|GL_FILL);
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
         // --------------------
@@ -410,6 +465,9 @@ int main() {
 
         // render
         // ------
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glEnable(GL_DEPTH_TEST);
+
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -508,7 +566,7 @@ int main() {
         paintingShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
         paintingShader.setBool("spotLightEnabled", programState->spotLightEnabled);
 
-        
+
         // view/projection transformations
         roomShader.use();
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
@@ -527,7 +585,7 @@ int main() {
         room.Draw(roomShader);
 
         modelsShader.use();
-        modelsShader.setMat4("projection", projection);  
+        modelsShader.setMat4("projection", projection);
         modelsShader.setMat4("view", view);
 
         model = glm::translate(model, glm::vec3(0.0, -0.55, 0.0));
@@ -602,14 +660,28 @@ int main() {
         paintingShader.setMat4("view", view);
         model = glm::mat4(1.0);
         model = glm::translate(model, programState->roomPosition + glm::vec3(3.3 , 1.8 + programState->deltaY, 0.0 + programState->deltaZ));
-        model = glm::scale(model, glm::vec3(0.02,1.1, 1.0));
+        model = glm::scale(model, glm::vec3(0.1,1.1, 1.0));
         paintingShader.setMat4("model", model);
         glBindVertexArray(VAO2);
         glDrawArrays(GL_TRIANGLES, 0, 36);
-
+        //std::cout << diffuseMap << " " << specularMap << "\n";
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
+        // clear all relevant buffers
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        screenShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindVertexArray(quadVAO);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        //std::cout << textureColorbuffer << "\n";
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -622,6 +694,9 @@ int main() {
 
     glDeleteVertexArrays(1, &VAO2);
     glDeleteBuffers(1, &VBO2);
+
+    glDeleteVertexArrays(1, &quadVAO);
+    glDeleteBuffers(1, &quadVBO);
     //glDeleteBuffers(1, &EBO);
 
     programState->SaveToFile("resources/program_state.txt");
