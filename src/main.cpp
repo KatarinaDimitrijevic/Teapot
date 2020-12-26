@@ -87,6 +87,8 @@ struct ProgramState {
     float deltaZ = 0;
 
     bool spotLightEnabled = false;
+    bool bloomEnabled = false;
+
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 0)) {}
 
@@ -566,6 +568,8 @@ int main() {
         paintingShader.setFloat("spotLight.outerCutOff", spotLight.outerCutOff);
         paintingShader.setBool("spotLightEnabled", programState->spotLightEnabled);
 
+        screenShader.use();
+        screenShader.setBool("bloomEnabled", programState->bloomEnabled);
 
         // view/projection transformations
         roomShader.use();
@@ -720,6 +724,12 @@ void processInput(GLFWwindow *window) {
         programState->spotLightEnabled = true;
     if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
         programState->spotLightEnabled = false;
+
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
+        programState->bloomEnabled = true;
+    if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+        programState->bloomEnabled = false;
+
 
     if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
         programState->deltaY += 0.01;
