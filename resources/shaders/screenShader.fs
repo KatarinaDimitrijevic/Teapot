@@ -6,11 +6,11 @@ in vec2 TexCoords;
 uniform sampler2D screenTexture;
 float offset = 1.0 / 300.0;
 
-uniform bool bloomEnabled;
+uniform bool blurEnabled;
 
 void main()
 {
-    if(bloomEnabled){
+    if(blurEnabled){
         vec2 offsets[9] = vec2[](
                 vec2(-offset, offset),
                 vec2(0.0f, offset),

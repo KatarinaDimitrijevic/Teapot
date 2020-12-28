@@ -87,7 +87,7 @@ struct ProgramState {
     float deltaZ = 0;
 
     bool spotLightEnabled = false;
-    bool bloomEnabled = false;
+    bool blurEnabled = false;
 
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 0)) {}
@@ -569,7 +569,7 @@ int main() {
         paintingShader.setBool("spotLightEnabled", programState->spotLightEnabled);
 
         screenShader.use();
-        screenShader.setBool("bloomEnabled", programState->bloomEnabled);
+        screenShader.setBool("blurEnabled", programState->blurEnabled);
 
         // view/projection transformations
         roomShader.use();
@@ -701,6 +701,7 @@ int main() {
 
     glDeleteVertexArrays(1, &quadVAO);
     glDeleteBuffers(1, &quadVBO);
+
     //glDeleteBuffers(1, &EBO);
 
     programState->SaveToFile("resources/program_state.txt");
@@ -726,9 +727,9 @@ void processInput(GLFWwindow *window) {
         programState->spotLightEnabled = false;
 
     if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
-        programState->bloomEnabled = true;
+        programState->blurEnabled = true;
     if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-        programState->bloomEnabled = false;
+        programState->blurEnabled = false;
 
 
     if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
