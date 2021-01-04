@@ -21,7 +21,6 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -37,7 +36,6 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-
 struct PointLight {
     glm::vec3 position;
     glm::vec3 ambient;
@@ -47,14 +45,6 @@ struct PointLight {
     float constant;
     float linear;
     float quadratic;
-};
-
-struct DirLight {
-    glm::vec3 direction;
-
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
 };
 
 struct SpotLight {
@@ -74,13 +64,11 @@ struct SpotLight {
 
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
-    bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
     glm::vec3 roomPosition = glm::vec3(0.0,0.0,0.0);
     float roomScale = 1.0f;
     PointLight pointLight;
-    DirLight dirLight;
     SpotLight spotLight;
 
     float deltaY = 0;
@@ -102,7 +90,6 @@ void ProgramState::SaveToFile(std::string filename) {
     out << clearColor.r << '\n'
         << clearColor.g << '\n'
         << clearColor.b << '\n'
-        << ImGuiEnabled << '\n'
         << camera.Position.x << '\n'
         << camera.Position.y << '\n'
         << camera.Position.z << '\n'
@@ -117,7 +104,6 @@ void ProgramState::LoadFromFile(std::string filename) {
         in >> clearColor.r
            >> clearColor.g
            >> clearColor.b
-           >> ImGuiEnabled
            >> camera.Position.x
            >> camera.Position.y
            >> camera.Position.z
@@ -133,7 +119,6 @@ void DrawImGui(ProgramState *programState);
 
 int main() {
     // glfw: initialize and configure
-    // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -144,7 +129,6 @@ int main() {
 #endif
 
     // glfw window creation
-    // --------------------
     GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -155,12 +139,9 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
-    glfwSetKeyCallback(window, key_callback);
-    // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
-    // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
@@ -171,26 +152,12 @@ int main() {
 
     programState = new ProgramState;
     programState->LoadFromFile("resources/program_state.txt");
-    if (programState->ImGuiEnabled) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-    // Init Imgui
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    (void) io;
 
-
-
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330 core");
 
     // configure global opengl state
-    // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
     // build and compile shaders
-    // -------------------------
     Shader roomShader("resources/shaders/roomShader.vs", "resources/shaders/roomShader.fs");
     Shader modelsShader("resources/shaders/modelsShader.vs", "resources/shaders/modelsShader.fs");
     Shader lightShader("resources/shaders/lightShader.vs", "resources/shaders/lightShader.fs");
@@ -240,7 +207,6 @@ int main() {
 
     float verticesPainting[] = {
             //coords              normals              TexCoords
-
             -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
             0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
             0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
@@ -284,7 +250,7 @@ int main() {
             -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
     };
 
-    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+    float quadVertices[] = {
             // positions   // texCoords
             -1.0f,  1.0f,  0.0f, 1.0f,
             -1.0f, -1.0f,  0.0f, 0.0f,
@@ -361,6 +327,7 @@ int main() {
         cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    //second post-processing framebuffer
     unsigned int intermediateFBO;
     glGenFramebuffers(1, &intermediateFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO);
@@ -378,9 +345,10 @@ int main() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // shader configuration
-    // --------------------
     screenShader.use();
     screenShader.setInt("screenTexture", 0);
+    screenShader.setInt("SCR_WIDTH", SCR_WIDTH);
+    screenShader.setInt("SCR_HEIGHT", SCR_HEIGHT);
 
 
     //diffuse and specular textures
@@ -391,9 +359,7 @@ int main() {
     paintingShader.setInt("material.diffuse", 0);
     paintingShader.setInt("material.specular", 1);
 
-
     // load models
-    // -----------
     Model room("resources/objects/soba_zavrsena/soba_zavrsena.obj");
     room.SetShaderTextureNamePrefix("material.");
 
@@ -419,12 +385,6 @@ int main() {
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
 
-    DirLight& dirLight = programState->dirLight;
-    dirLight.ambient = glm::vec3(0.3 ,0.3 ,0.3);
-    dirLight.diffuse = glm::vec3(0.01, 0.01, 0.01);
-    dirLight.specular = glm::vec3(0.05, 0.05, 0.05);
-    dirLight.direction = glm::vec3(-5.0, 1.0, -1.5);
-
     SpotLight& spotLight = programState->spotLight;
     spotLight.ambient = glm::vec3(0.0f, 0.0f, 0.0f);
     spotLight.diffuse = glm::vec3 (1.0f, 1.0f, 1.0f);
@@ -439,17 +399,13 @@ int main() {
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // render loop
-    // -----------
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE|GL_FILL);
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
-        // --------------------
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
         // input
-        // -----
         processInput(window);
 
         //camera inside
@@ -466,9 +422,7 @@ int main() {
         if (programState->camera.Position.z > 2.3)
             programState->camera.Position.z = 2.3;
 
-
         // render
-        // ------
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -479,11 +433,6 @@ int main() {
 
         //room lights
         roomShader.use();
-        roomShader.setVec3("dirLight.ambient", dirLight.ambient);
-        roomShader.setVec3("dirLight.diffuse", dirLight.diffuse);
-        roomShader.setVec3("dirLight.specular", dirLight.specular);
-        roomShader.setVec3("dirLight.direction", dirLight.direction);
-
         roomShader.setVec3("pointLight.position", pointLight.position);
         roomShader.setVec3("pointLight.ambient", pointLight.ambient);
         roomShader.setVec3("pointLight.diffuse", pointLight.diffuse);
@@ -510,11 +459,6 @@ int main() {
         modelsShader.use();
         modelsShader.setVec3("viewPosition", programState->camera.Position);
         modelsShader.setFloat("material.shininess", 16.0f);
-
-        modelsShader.setVec3("dirLight.ambient", dirLight.ambient);
-        modelsShader.setVec3("dirLight.diffuse", dirLight.diffuse);
-        modelsShader.setVec3("dirLight.specular", dirLight.specular);
-        modelsShader.setVec3("dirLight.direction", dirLight.direction);
 
         modelsShader.setVec3("pointLight.position", pointLight.position);
         modelsShader.setVec3("pointLight.ambient", pointLight.ambient);
@@ -558,7 +502,6 @@ int main() {
         paintingShader.setFloat("pointLight.constant", pointLight.constant);
         paintingShader.setFloat("pointLight.linear", pointLight.linear);
         paintingShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-//
 
         paintingShader.setVec3("spotLight.position", programState->camera.Position);
         paintingShader.setVec3("spotLight.direction", programState->camera.Front);
@@ -586,9 +529,8 @@ int main() {
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               programState->roomPosition); // translate it down so it's at the center of the scene
-        //model = glm::rotate(model, glm::radians(40.0f), glm::vec3(1.0,1.0 ,0.0));
-        model = glm::scale(model, glm::vec3(programState->roomScale));    // it's a bit too big for our scene, so scale it down
+                               programState->roomPosition);
+        model = glm::scale(model, glm::vec3(programState->roomScale));
         roomShader.setMat4("model", model);
         room.Draw(roomShader);
 
@@ -597,8 +539,7 @@ int main() {
         modelsShader.setMat4("view", view);
 
         model = glm::translate(model, glm::vec3(0.0, -0.55, 0.0));
-        //model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0, 0.0, 0.0));
-        model = glm::scale(model, glm::vec3(0.2, 0.25, 0.2));    // it's a bit too big for our scene, so scale it down
+        model = glm::scale(model, glm::vec3(0.2, 0.25, 0.2));
         modelsShader.setMat4("model", model);
         table.Draw(modelsShader);
 
@@ -655,7 +596,6 @@ int main() {
 
 
         //painting
-
         paintingShader.use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap);
@@ -673,9 +613,6 @@ int main() {
         glBindVertexArray(VAO2);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        if (programState->ImGuiEnabled)
-            DrawImGui(programState);
-
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
         glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
@@ -691,8 +628,7 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, screenTexture);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
+        // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -706,21 +642,17 @@ int main() {
     glDeleteVertexArrays(1, &quadVAO);
     glDeleteBuffers(1, &quadVBO);
 
-    //glDeleteBuffers(1, &EBO);
-
     programState->SaveToFile("resources/program_state.txt");
     delete programState;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
+    //clearing all previously allocated GLFW resources.
     glfwTerminate();
     return 0;
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -735,7 +667,6 @@ void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
         programState->blurEnabled = false;
 
-
     if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
         programState->deltaY += 0.01;
     if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
@@ -744,7 +675,6 @@ void processInput(GLFWwindow *window) {
         programState->deltaZ -= 0.01;
     if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
         programState->deltaZ += 0.01;
-
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         programState->camera.ProcessKeyboard(FORWARD, deltaTime);
@@ -757,7 +687,6 @@ void processInput(GLFWwindow *window) {
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     // make sure the viewport matches the new window dimensions; note that width and
     // height will be significantly larger than specified on retina displays.
@@ -765,7 +694,6 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 }
 
 // glfw: whenever the mouse moves, this callback is called
-// -------------------------------------------------------
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     if (firstMouse) {
         lastX = xpos;
@@ -784,58 +712,9 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
     programState->camera.ProcessMouseScroll(yoffset);
 }
-
-void DrawImGui(ProgramState *programState) {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
-
-    {
-        static float f = 0.0f;
-        ImGui::Begin("Hello window");
-        ImGui::Text("Hello text");
-        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
-        ImGui::DragFloat3("Room position", (float*)&programState->roomPosition);
-        ImGui::DragFloat("Room scale", &programState->roomScale, 0.05, 0.1, 10.0);
-
-        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
-        ImGui::End();
-    }
-
-    {
-        ImGui::Begin("Camera info");
-        const Camera& c = programState->camera;
-        ImGui::DragFloat3("Camera position", (float*)&programState->roomPosition);
-        ImGui::Text("(Yaw, Pitch): (%f, %f)", c.Yaw, c.Pitch);
-        ImGui::Text("Camera front: (%f, %f, %f)", c.Front.x, c.Front.y, c.Front.z);
-        ImGui::Checkbox("Camera mouse update", &programState->CameraMouseMovementUpdateEnabled);
-        ImGui::End();
-    }
-
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_F11 && action == GLFW_PRESS) {
-        programState->ImGuiEnabled = !programState->ImGuiEnabled;
-        if (programState->ImGuiEnabled) {
-            programState->CameraMouseMovementUpdateEnabled = false;
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        } else {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        }
-    }
-}
-
 
 unsigned int loadTexture(char const * path)
 {

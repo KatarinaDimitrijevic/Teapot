@@ -4,13 +4,15 @@ out vec4 FragColor;
 in vec2 TexCoords;
 
 uniform sampler2D screenTexture;
+uniform int SCR_WIDTH;
+uniform int SCR_HEIGHT;
 float offset = 1.0 / 300.0;
 
 uniform bool blurEnabled;
 
 void main()
 {
-    ivec2 viewportDim = ivec2(800, 600);
+    ivec2 viewportDim = ivec2(SCR_WIDTH, SCR_HEIGHT);
     ivec2 coords = ivec2(viewportDim * TexCoords);
 
     if(blurEnabled){
