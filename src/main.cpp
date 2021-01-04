@@ -422,6 +422,16 @@ int main() {
         if (programState->camera.Position.z > 2.3)
             programState->camera.Position.z = 2.3;
 
+        //painting inside
+        if(programState->deltaY < -1.23)
+            programState->deltaY = -1.23;
+        if(programState->deltaY > 0.77)
+            programState->deltaY = 0.77;
+        if(programState->deltaZ < -2.48)
+            programState->deltaZ = -2.48;
+        if(programState->deltaZ > 2.485)
+            programState->deltaZ = 2.485;
+
         // render
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -594,15 +604,12 @@ int main() {
         glBindVertexArray(VAO1);
         glDrawElements(GL_TRIANGLES, 60, GL_UNSIGNED_INT, 0);
 
-
         //painting
         paintingShader.use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap);
-        // bind specular map
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, specularMap);
-        //draw the painting object
 
         paintingShader.setMat4("projection", projection);
         paintingShader.setMat4("view", view);
