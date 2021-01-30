@@ -21,7 +21,6 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -35,6 +34,7 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
 
 struct PointLight {
     glm::vec3 position;
@@ -139,6 +139,7 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
@@ -152,7 +153,6 @@ int main() {
 
     programState = new ProgramState;
     programState->LoadFromFile("resources/program_state.txt");
-
 
     // configure global opengl state
     glEnable(GL_DEPTH_TEST);
@@ -207,6 +207,7 @@ int main() {
 
     float verticesPainting[] = {
             //coords              normals              TexCoords
+
             -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
             0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
             0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
@@ -250,7 +251,7 @@ int main() {
             -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
     };
 
-    float quadVertices[] = {
+    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
             // positions   // texCoords
             -1.0f,  1.0f,  0.0f, 1.0f,
             -1.0f, -1.0f,  0.0f, 0.0f,
@@ -327,7 +328,6 @@ int main() {
         cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    //second post-processing framebuffer
     unsigned int intermediateFBO;
     glGenFramebuffers(1, &intermediateFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO);
@@ -347,8 +347,6 @@ int main() {
     // shader configuration
     screenShader.use();
     screenShader.setInt("screenTexture", 0);
-    screenShader.setInt("SCR_WIDTH", SCR_WIDTH);
-    screenShader.setInt("SCR_HEIGHT", SCR_HEIGHT);
 
 
     //diffuse and specular textures
@@ -358,6 +356,7 @@ int main() {
     paintingShader.use();
     paintingShader.setInt("material.diffuse", 0);
     paintingShader.setInt("material.specular", 1);
+
 
     // load models
     Model room("resources/objects/soba_zavrsena/soba_zavrsena.obj");
@@ -395,12 +394,10 @@ int main() {
     spotLight.cutOff = glm::cos(glm::radians(12.5f));
     spotLight.outerCutOff = glm::cos(glm::radians(20.0f));
 
-    // draw in wireframe
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
     // render loop
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
+        // --------------------
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -431,6 +428,7 @@ int main() {
             programState->deltaZ = -2.48;
         if(programState->deltaZ > 2.485)
             programState->deltaZ = 2.485;
+
 
         // render
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
@@ -512,6 +510,7 @@ int main() {
         paintingShader.setFloat("pointLight.constant", pointLight.constant);
         paintingShader.setFloat("pointLight.linear", pointLight.linear);
         paintingShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+//
 
         paintingShader.setVec3("spotLight.position", programState->camera.Position);
         paintingShader.setVec3("spotLight.direction", programState->camera.Front);
@@ -539,8 +538,9 @@ int main() {
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model,
-                               programState->roomPosition);
-        model = glm::scale(model, glm::vec3(programState->roomScale));
+                               programState->roomPosition); // translate it down so it's at the center of the scene
+        //model = glm::rotate(model, glm::radians(40.0f), glm::vec3(1.0,1.0 ,0.0));
+        model = glm::scale(model, glm::vec3(programState->roomScale));    // it's a bit too big for our scene, so scale it down
         roomShader.setMat4("model", model);
         room.Draw(roomShader);
 
@@ -549,7 +549,8 @@ int main() {
         modelsShader.setMat4("view", view);
 
         model = glm::translate(model, glm::vec3(0.0, -0.55, 0.0));
-        model = glm::scale(model, glm::vec3(0.2, 0.25, 0.2));
+        //model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0, 0.0, 0.0));
+        model = glm::scale(model, glm::vec3(0.2, 0.25, 0.2));    // it's a bit too big for our scene, so scale it down
         modelsShader.setMat4("model", model);
         table.Draw(modelsShader);
 
@@ -604,12 +605,16 @@ int main() {
         glBindVertexArray(VAO1);
         glDrawElements(GL_TRIANGLES, 60, GL_UNSIGNED_INT, 0);
 
+
         //painting
+
         paintingShader.use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        // bind specular map
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, specularMap);
+        //draw the painting object
 
         paintingShader.setMat4("projection", projection);
         paintingShader.setMat4("view", view);
@@ -635,7 +640,7 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, screenTexture);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        // glfw: swap buffers and poll IO events
+        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -649,12 +654,11 @@ int main() {
     glDeleteVertexArrays(1, &quadVAO);
     glDeleteBuffers(1, &quadVBO);
 
+    //glDeleteBuffers(1, &EBO);
+
     programState->SaveToFile("resources/program_state.txt");
     delete programState;
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-    //clearing all previously allocated GLFW resources.
+    // glfw: terminate, clearing all previously allocated GLFW resources.
     glfwTerminate();
     return 0;
 }
@@ -674,6 +678,7 @@ void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
         programState->blurEnabled = false;
 
+
     if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
         programState->deltaY += 0.01;
     if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
@@ -682,6 +687,7 @@ void processInput(GLFWwindow *window) {
         programState->deltaZ -= 0.01;
     if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
         programState->deltaZ += 0.01;
+
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         programState->camera.ProcessKeyboard(FORWARD, deltaTime);
