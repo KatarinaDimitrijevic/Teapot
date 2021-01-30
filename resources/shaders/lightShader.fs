@@ -8,5 +8,5 @@ void main()
     if(spotLightEnabled == false)
         FragColor = vec4(1.0);
     else
-        FragColor = vec4(0.3);
+        FragColor = vec4(0.1);
 }

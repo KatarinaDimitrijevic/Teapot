@@ -422,11 +422,11 @@ int main() {
         //painting inside
         if(programState->deltaY < -1.23)
             programState->deltaY = -1.23;
-        if(programState->deltaY > 0.77)
+        if(programState->deltaY > 0.770)
             programState->deltaY = 0.77;
         if(programState->deltaZ < -2.48)
             programState->deltaZ = -2.48;
-        if(programState->deltaZ > 2.485)
+        if(programState->deltaZ > 2.4850)
             programState->deltaZ = 2.485;
 
 
