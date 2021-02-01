@@ -385,7 +385,7 @@ int main() {
     pointLight.quadratic = 0.032f;
 
     SpotLight& spotLight = programState->spotLight;
-    spotLight.ambient = glm::vec3(0.0f, 0.0f, 0.0f);
+    spotLight.ambient = glm::vec3(0.4f, 0.4f, 0.4f);
     spotLight.diffuse = glm::vec3 (1.0f, 1.0f, 1.0f);
     spotLight.specular = glm::vec3(0.55f, 0.55f, 0.55f);
     spotLight.constant = 1.0f;
